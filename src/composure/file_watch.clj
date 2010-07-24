@@ -9,7 +9,7 @@
   (on-modify [this filename] "Function called on a file modify event.")
   (on-overflow [this] "Function called when an event overflow happens."))
 
-(defrecord DefaultFileWatcher [watcher]
+(defrecord DefaultFileWatcher [service]
   WatchReaction
   (on-create
    [this filename]
@@ -27,7 +27,7 @@
 (defn- watch-fn
   [watcher]
   (try
-   (loop [signaled-key (.take (:watcher watcher))]
+   (loop [signaled-key (.take (:service watcher))]
      (doseq [event (.pollEvents signaled-key)]
        (let [kind (.kind event)
 	     filename (.context event)]
@@ -43,7 +43,7 @@
 	   ;; Default.
 	   (println "Stuff happened."))))
      (if (.reset signaled-key)
-       (recur (.take (:watcher watcher)))))
+       (recur (.take (:service watcher)))))
    ;; Catch this, because we want to just exit the main loop in this case.
    (catch ClosedWatchServiceException cwse)))
 
@@ -52,17 +52,24 @@
    on it, or change the watch options. Any arguments passed to this function
    are interpreted as file system paths to add to the watcher."
   [& paths]
-  (let [watch-service (DefaultFileWatcher.
+  (let [watcher (DefaultFileWatcher.
 			(.. FileSystems (getDefault) (newWatchService)))]
+    (apply watch watcher paths)
+    (.start (Thread. #(watch-fn watcher)))
+    watcher))
+
+(defn watch
+  "Add additional paths to watch to an already-running watch service."
+  [watcher & paths]
+  (let [watch-service (:service watcher)]
     (doseq [path paths]
       (let [dir (Paths/get path)]
-	(.register dir (:watcher watch-service)
+	(.register dir (:service watcher)
 		   (into-array [StandardWatchEventKind/ENTRY_CREATE
 				StandardWatchEventKind/ENTRY_DELETE
-				StandardWatchEventKind/ENTRY_MODIFY]))))
-    (.start (Thread. #(watch-fn watch-service)))
-    watch-service))
+				StandardWatchEventKind/ENTRY_MODIFY]))))))
 
 (defn close
+  "Stop and close a running watch service."
   [watcher]
-  (.close (:watcher watcher)))
+  (.close (:service watcher)))
