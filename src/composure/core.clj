@@ -1,6 +1,7 @@
 (ns composure.core
   (:use clojure.contrib.def)
-  (:import [com.google.javascript.jscomp.deps DependencyInfo]))
+  (:import [com.google.javascript.jscomp BasicErrorManager]
+	   [com.google.javascript.jscomp.deps DependencyInfo JsFileParser]))
 
 (def *closure-library-directory* nil)
 (def *source-directory* nil)
@@ -9,7 +10,7 @@
 (defvar- bundles (atom {})
   "Central storage for bundle information. Keyed by bundle name.")
 
-(defvar- dependencies (atom {})
+(defvar- provides->dependency-info (atom {})
   "Central storage location for the depencency graph (DependencyInfo objects).
    Keyed by namespace.")
 
@@ -33,6 +34,14 @@
 	  ;; Otherwise, already seen this ns.
 	  :else
 	  (recur rest-ns output))))
+
+(defn- add-dependencies
+  "Given a list of paths to files, parses and updates the dependency graph
+   with the information gained."
+  [& paths]
+  (let [deps-parser (JsFileParser. (BasicErrorManager.))]
+    (for [path paths]
+      (.parseFile deps-parser path *closure-relative-path*))))
 
 (defn bundle
   "Gives a name to a bundle that should be made by compiling a bunch of
