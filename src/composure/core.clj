@@ -8,7 +8,8 @@
 (def *output-directory* nil)
 
 (defvar- bundles (atom {})
-  "Central storage for bundle information. Keyed by bundle name.")
+  "Central storage for bundle information. Keyed by bundle name (a path
+   relative to *output-directory*).")
 
 (defvar- provides->dependency-info (atom {})
   "Central storage location for the depencency graph (DependencyInfo objects).
@@ -35,18 +36,10 @@
 	  :else
 	  (recur rest-ns output))))
 
-(defn- add-dependencies
-  "Given a list of paths to files, parses and updates the dependency graph
-   with the information gained."
-  [& paths]
-  (let [deps-parser (JsFileParser. (BasicErrorManager.))]
-    (for [path paths]
-      (.parseFile deps-parser path *closure-relative-path*))))
-
 (defn bundle
   "Gives a name to a bundle that should be made by compiling a bunch of
    namespaces. After the name is a list of namespaces that should be
    included in the compiled bundle; their dependencies will recursively be
    compiled in."
   [name & inputs]
-  (let [requires (calculate-requirements inputs)]
+  (let [requires (calculate-requirements inputs)]))
