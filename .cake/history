@@ -1,9 +1,0 @@
-test1
-
-*source-directory*
-composure.core/*source-directory*
-require 'hamster'  ;  )
-(let [test: 1] test:)
-
-
-(let [test: 1] test:)
